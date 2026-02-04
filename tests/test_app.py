@@ -1,11 +1,12 @@
 import sys
 import os
 
+# Ensure project root is on PYTHONPATH
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
-from app.main import app
+from app.main import app   # <-- THIS must import FastAPI instance
 import app.main
 
 # ---------------- MOCK DATABASE ----------------
