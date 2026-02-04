@@ -6,8 +6,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
-from app.main import app   # <-- THIS must import FastAPI instance
-import app.main
+from core.main import app   # <-- THIS must import FastAPI instance
+import core.main
 
 # ---------------- MOCK DATABASE ----------------
 
@@ -24,9 +24,9 @@ mock_db.fetch.return_value = [fake_row]
 mock_db.execute.return_value = "OK"
 
 # Replace real DB with mock
-app.main.db = mock_db
+core.main.db = mock_db
 
-client = TestClient(app)
+client = TestClient(core)
 
 # ---------------- TESTS ----------------
 
