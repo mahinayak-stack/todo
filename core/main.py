@@ -1,9 +1,19 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from typing import List
-from core.db import get_db
+from core.db import init_db, close_db, get_db
 from core.models import TodoIn, TodoOut
 
 app = FastAPI(title="Todo API")
+
+
+@app.on_event("startup")
+async def startup():
+    await init_db(app)
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await close_db(app)
 
 
 @app.get("/")
@@ -12,15 +22,15 @@ def health():
 
 
 @app.get("/todos", response_model=List[TodoOut])
-async def get_todos():
-    db = await get_db()
+async def get_todos(request: Request):
+    db = await get_db(request.app)
     rows = await db.fetch("SELECT * FROM todos ORDER BY id")
     return [dict(r) for r in rows]
 
 
 @app.post("/todos", response_model=TodoOut)
-async def create_todo(todo: TodoIn):
-    db = await get_db()
+async def create_todo(todo: TodoIn, request: Request):
+    db = await get_db(request.app)
     row = await db.fetchrow(
         """
         INSERT INTO todos (title, description)
@@ -34,8 +44,8 @@ async def create_todo(todo: TodoIn):
 
 
 @app.put("/todos/{todo_id}", response_model=TodoOut)
-async def update_todo(todo_id: int, todo: TodoIn):
-    db = await get_db()
+async def update_todo(todo_id: int, todo: TodoIn, request: Request):
+    db = await get_db(request.app)
     row = await db.fetchrow(
         """
         UPDATE todos
@@ -53,12 +63,9 @@ async def update_todo(todo_id: int, todo: TodoIn):
 
 
 @app.delete("/todos/{todo_id}")
-async def delete_todo(todo_id: int):
-    db = await get_db()
-    result = await db.execute(
-        "DELETE FROM todos WHERE id=$1",
-        todo_id,
-    )
+async def delete_todo(todo_id: int, request: Request):
+    db = await get_db(request.app)
+    result = await db.execute("DELETE FROM todos WHERE id=$1", todo_id)
     if result == "DELETE 0":
         raise HTTPException(status_code=404, detail="Todo not found")
     return {"deleted": True}
