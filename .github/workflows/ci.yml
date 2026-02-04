@@ -40,6 +40,16 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Create DB table
+        run: |
+          psql "$DATABASE_URL" -c "
+          CREATE TABLE IF NOT EXISTS todos (
+              id SERIAL PRIMARY KEY,
+              title TEXT NOT NULL,
+              description TEXT,
+              completed BOOLEAN DEFAULT FALSE
+          );"
+
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
 

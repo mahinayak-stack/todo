@@ -6,15 +6,28 @@ DATABASE_URL = os.getenv(
     "postgresql://postgres:postgres@localhost:5432/todo_db"
 )
 
-db: asyncpg.Pool | None = None
+_db_pool: asyncpg.Pool | None = None
 
 
-async def connect_db():
-    global db
-    db = await asyncpg.create_pool(DATABASE_URL)
+async def get_db() -> asyncpg.Pool:
+    """
+    Lazy DB initialization + table creation.
+    Runs once and guarantees schema exists.
+    """
+    global _db_pool
 
+    if _db_pool is None:
+        _db_pool = await asyncpg.create_pool(DATABASE_URL)
 
-async def disconnect_db():
-    global db
-    if db:
-        await db.close()
+        # 🔥 GUARANTEE TABLE EXISTS
+        async with _db_pool.acquire() as conn:
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS todos (
+                    id SERIAL PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    completed BOOLEAN DEFAULT FALSE
+                )
+            """)
+
+    return _db_pool
